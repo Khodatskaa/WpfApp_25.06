@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Timers;
 
 namespace WpfApp_25._06
 {
@@ -21,12 +22,22 @@ namespace WpfApp_25._06
         private readonly int requestLimit = 10;
         private readonly TimeSpan requestLimitPeriod = TimeSpan.FromHours(1);
 
+        private readonly int maxActiveClients = 5;
+        private readonly TimeSpan clientTimeout = TimeSpan.FromMinutes(10);
+        private Dictionary<string, DateTime> activeClients;
+
         private Dictionary<string, List<DateTime>> clientRequestLog;
+        private System.Timers.Timer clientCleanupTimer;
 
         public MainWindow()
         {
             InitializeComponent();
             clientRequestLog = new Dictionary<string, List<DateTime>>();
+            activeClients = new Dictionary<string, DateTime>();
+
+            clientCleanupTimer = new System.Timers.Timer(clientTimeout.TotalMilliseconds / 2);
+            clientCleanupTimer.Elapsed += ClientCleanupTimer_Elapsed;
+            clientCleanupTimer.Start();
         }
 
         private void StartServerButton_Click(object sender, RoutedEventArgs e)
@@ -62,6 +73,7 @@ namespace WpfApp_25._06
         {
             isServerRunning = false;
             udpServer.Close();
+            clientCleanupTimer.Stop();
             StartServerButton.IsEnabled = true;
             StopServerButton.IsEnabled = false;
             ServerLogListBox.Items.Add("Server stopped.");
@@ -77,6 +89,12 @@ namespace WpfApp_25._06
                     string request = Encoding.UTF8.GetString(result.Buffer);
                     string clientEndpoint = result.RemoteEndPoint.ToString();
 
+                    if (activeClients.Count >= maxActiveClients && !activeClients.ContainsKey(clientEndpoint))
+                    {
+                        Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Connection rejected: {clientEndpoint}. Max active clients reached."));
+                        continue;
+                    }
+
                     Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Received: {request} from {clientEndpoint}"));
 
                     string response;
@@ -85,6 +103,7 @@ namespace WpfApp_25._06
                     {
                         response = GetRecipes(request);
                         LogClientRequest(clientEndpoint);
+                        UpdateClientActivity(clientEndpoint);
                     }
                     else
                     {
@@ -133,6 +152,7 @@ namespace WpfApp_25._06
             var requestTimes = clientRequestLog[clientEndpoint];
             DateTime now = DateTime.Now;
 
+            // Remove timestamps older than the limit period
             requestTimes.RemoveAll(t => (now - t) > requestLimitPeriod);
 
             return requestTimes.Count < requestLimit;
@@ -146,6 +166,26 @@ namespace WpfApp_25._06
             }
 
             clientRequestLog[clientEndpoint].Add(DateTime.Now);
+        }
+
+        private void UpdateClientActivity(string clientEndpoint)
+        {
+            activeClients[clientEndpoint] = DateTime.Now;
+        }
+
+        private void ClientCleanupTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            DateTime now = DateTime.Now;
+            List<string> inactiveClients = activeClients
+                .Where(client => (now - client.Value) > clientTimeout)
+                .Select(client => client.Key)
+                .ToList();
+
+            foreach (var client in inactiveClients)
+            {
+                activeClients.Remove(client);
+                Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Client {client} disconnected due to inactivity."));
+            }
         }
 
         private void ProductListTextBox_GotFocus(object sender, RoutedEventArgs e)
