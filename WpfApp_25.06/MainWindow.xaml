@@ -7,12 +7,6 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <StackPanel Margin="20">
-            <TextBox x:Name="txtServerIP" PlaceholderText="Server IP Address" Margin="0 0 0 10"/>
-            <TextBox x:Name="txtServerPort" PlaceholderText="Server Port" Margin="0 0 0 10"/>
-            <TextBox x:Name="txtMessageToSend" PlaceholderText="Message to Send" Margin="0 0 0 10"/>
-            <Button Content="Send Message" Click="SendMessage_Click" HorizontalAlignment="Center"/>
-            <TextBlock x:Name="txtReceivedMessage" TextWrapping="Wrap" Margin="0 20 0 0"/>
-        </StackPanel>
+        <TextBlock x:Name="txtStatus" Text="UDP Server is not running." HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Grid>
 </Window>
