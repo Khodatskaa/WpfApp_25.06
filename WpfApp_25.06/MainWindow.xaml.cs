@@ -15,7 +15,8 @@ namespace WpfApp_25._06
     public partial class MainWindow : Window
     {
         private UdpClient udpServer;
-        private bool isRunning;
+        private UdpClient udpClient;
+        private bool isServerRunning;
         private readonly int port = 11000;
 
         public MainWindow()
@@ -33,51 +34,94 @@ namespace WpfApp_25._06
             StopServer();
         }
 
+        private void SendRequestButton_Click(object sender, RoutedEventArgs e)
+        {
+            string products = ProductListTextBox.Text;
+            if (!string.IsNullOrEmpty(products) && products != "Enter products separated by commas")
+            {
+                SendRequest(products);
+            }
+        }
+
         private void StartServer()
         {
             udpServer = new UdpClient(port);
-            isRunning = true;
+            isServerRunning = true;
             Task.Run(() => ListenForRequests());
             StartServerButton.IsEnabled = false;
             StopServerButton.IsEnabled = true;
-            LogListBox.Items.Add("Server started...");
+            ServerLogListBox.Items.Add("Server started...");
         }
 
         private void StopServer()
         {
-            isRunning = false;
+            isServerRunning = false;
             udpServer.Close();
             StartServerButton.IsEnabled = true;
             StopServerButton.IsEnabled = false;
-            LogListBox.Items.Add("Server stopped.");
+            ServerLogListBox.Items.Add("Server stopped.");
         }
 
         private async Task ListenForRequests()
         {
-            while (isRunning)
+            while (isServerRunning)
             {
                 try
                 {
                     var result = await udpServer.ReceiveAsync();
                     string request = Encoding.UTF8.GetString(result.Buffer);
-                    Dispatcher.Invoke(() => LogListBox.Items.Add($"Received: {request}"));
+                    Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Received: {request}"));
 
                     string response = GetRecipes(request);
                     byte[] responseBytes = Encoding.UTF8.GetBytes(response);
 
                     await udpServer.SendAsync(responseBytes, responseBytes.Length, result.RemoteEndPoint);
-                    Dispatcher.Invoke(() => LogListBox.Items.Add($"Sent: {response}"));
+                    Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Sent: {response}"));
                 }
                 catch (Exception ex)
                 {
-                    Dispatcher.Invoke(() => LogListBox.Items.Add($"Error: {ex.Message}"));
+                    Dispatcher.Invoke(() => ServerLogListBox.Items.Add($"Error: {ex.Message}"));
                 }
             }
+        }
+
+        private async Task SendRequest(string products)
+        {
+            if (udpClient == null)
+            {
+                udpClient = new UdpClient();
+            }
+
+            byte[] requestBytes = Encoding.UTF8.GetBytes(products);
+            await udpClient.SendAsync(requestBytes, requestBytes.Length, "127.0.0.1", port);
+
+            var result = await udpClient.ReceiveAsync();
+            string response = Encoding.UTF8.GetString(result.Buffer);
+
+            Dispatcher.Invoke(() => ClientResponseListBox.Items.Add(response));
         }
 
         private string GetRecipes(string products)
         {
             return $"Recipes for {products}: Recipe1, Recipe2, Recipe3";
+        }
+
+        private void ProductListTextBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (ProductListTextBox.Text == "Enter products separated by commas")
+            {
+                ProductListTextBox.Text = "";
+                ProductListTextBox.Foreground = Brushes.Black;
+            }
+        }
+
+        private void ProductListTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(ProductListTextBox.Text))
+            {
+                ProductListTextBox.Text = "Enter products separated by commas";
+                ProductListTextBox.Foreground = Brushes.Gray;
+            }
         }
     }
 }
