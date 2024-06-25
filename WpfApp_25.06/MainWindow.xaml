@@ -7,18 +7,17 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <StackPanel Orientation="Vertical" Margin="10">
+            <TextBlock Text="Server Status:" FontSize="16" FontWeight="Bold"/>
+            <TextBlock x:Name="txtServerStatus" Text="UDP Server is not running." Margin="0 10"/>
 
-        <TextBlock x:Name="txtStatus" Text="UDP Server is not running." HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Button x:Name="StartServerButton" Content="Start Server" Click="StartServer_Click" Margin="0 10"/>
+            <Button x:Name="StopServerButton" Content="Stop Server" Click="StopServer_Click" Margin="0 10" IsEnabled="False"/>
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0 20">
-            <Button Content="Start Server" Click="StartServer_Click" Margin="5"/>
-            <Button Content="Stop Server" Click="StopServer_Click" Margin="5" IsEnabled="False"/>
+            <Button Content="Manage Server" Click="ManageServer_Click" Margin="0 10"/>
+
+            <TextBlock Text="Connected Clients:" FontSize="16" FontWeight="Bold" Margin="0 10"/>
+            <ListBox x:Name="lstClients" HorizontalContentAlignment="Stretch"/>
         </StackPanel>
-
-        <ListBox x:Name="lstClients" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="20"/>
     </Grid>
 </Window>

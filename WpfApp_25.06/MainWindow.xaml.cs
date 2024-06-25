@@ -16,6 +16,7 @@ namespace WpfApp_25._06
         private Dictionary<string, DateTime> activeClients = new Dictionary<string, DateTime>();
         private const int MaxClients = 5;
         private const int InactivityTimeoutMinutes = 10;
+        private bool serverRunning;
 
         public MainWindow()
         {
@@ -24,64 +25,90 @@ namespace WpfApp_25._06
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            txtStatus.Text = "UDP Server is not running.";
+            txtServerStatus.Text = "UDP Server is not running.";
         }
 
         private void StartServer_Click(object sender, RoutedEventArgs e)
         {
-            if (udpServer == null)
-            {
-                StartUDPServer();
-                txtStatus.Text = "UDP Server with Client Quantity and Inactivity Timeout is running...";
-                (sender as Button).IsEnabled = false;
-                FindVisualChild<Button>(this, "StopServerButton").IsEnabled = true;
-            }
-            else
-            {
-                MessageBox.Show("Server is already running.");
-            }
+            StartServer();
+            txtServerStatus.Text = "UDP Server with Client Quantity and Inactivity Timeout is running...";
+            (sender as Button).IsEnabled = false;
+            FindVisualChild<Button>(this, "StopServerButton").IsEnabled = true;
         }
 
         private void StopServer_Click(object sender, RoutedEventArgs e)
+        {
+            StopServer();
+            txtServerStatus.Text = "UDP Server is not running.";
+            (sender as Button).IsEnabled = false;
+            FindVisualChild<Button>(this, "StartServerButton").IsEnabled = true;
+        }
+
+        private void ManageServer_Click(object sender, RoutedEventArgs e)
+        {
+            if (serverRunning)
+            {
+                StopServer();
+            }
+            else
+            {
+                StartServer();
+            }
+        }
+
+        private async void StartServer()
+        {
+            if (udpServer == null)
+            {
+                try
+                {
+                    udpServer = new UdpClient(12345);
+
+                    await Task.Run(async () =>
+                    {
+                        serverRunning = true;
+                        try
+                        {
+                            while (udpServer != null)
+                            {
+                                UdpReceiveResult result = await udpServer.ReceiveAsync();
+                                ProcessClientMessage(result.Buffer, result.RemoteEndPoint);
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // UdpClient has been disposed, exit the loop
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error in ReceiveMessages: {ex.Message}");
+                        }
+                        finally
+                        {
+                            serverRunning = false;
+                        }
+                    });
+
+                    await Task.Run(() => CleanUpInactiveClients());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error starting UDP server: {ex.Message}");
+                    StopServer();
+                }
+            }
+        }
+
+        private void StopServer()
         {
             if (udpServer != null)
             {
                 udpServer.Close();
                 udpServer = null;
-                txtStatus.Text = "UDP Server is not running.";
-                (sender as Button).IsEnabled = false;
-                FindVisualChild<Button>(this, "StartServerButton").IsEnabled = true;
-
                 activeClients.Clear();
                 lstClients.Items.Clear();
+                serverRunning = false;
             }
-            else
-            {
-                MessageBox.Show("Server is not running.");
-            }
-        }
-
-        private void StartUDPServer()
-        {
-            udpServer = new UdpClient(12345);
-
-            Task.Run(async () =>
-            {
-                try
-                {
-                    while (true)
-                    {
-                        UdpReceiveResult result = await udpServer.ReceiveAsync();
-                        ProcessClientMessage(result.Buffer, result.RemoteEndPoint);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error in ReceiveMessages: {ex.Message}");
-                }
-            });
-
-            Task.Run(() => CleanUpInactiveClients());
         }
 
         private void ProcessClientMessage(byte[] data, IPEndPoint clientEP)
@@ -118,12 +145,12 @@ namespace WpfApp_25._06
 
         private bool CheckRequestRateLimit(string clientAddress)
         {
-            return true;
+            return true; // Placeholder for request rate limit logic
         }
 
-        private void CleanUpInactiveClients()
+        private async Task CleanUpInactiveClients()
         {
-            while (true)
+            while (udpServer != null)
             {
                 List<string> inactiveClients = new List<string>();
 
@@ -148,7 +175,7 @@ namespace WpfApp_25._06
                     });
                 }
 
-                Task.Delay(60000).Wait();
+                await Task.Delay(TimeSpan.FromMinutes(1)); // Adjust the delay based on your needs
             }
         }
 
