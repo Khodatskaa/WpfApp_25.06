@@ -7,6 +7,18 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
         <TextBlock x:Name="txtStatus" Text="UDP Server is not running." HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0 20">
+            <Button Content="Start Server" Click="StartServer_Click" Margin="5"/>
+            <Button Content="Stop Server" Click="StopServer_Click" Margin="5" IsEnabled="False"/>
+        </StackPanel>
+
+        <ListBox x:Name="lstClients" Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="20"/>
     </Grid>
 </Window>
