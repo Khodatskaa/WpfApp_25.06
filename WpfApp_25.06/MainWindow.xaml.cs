@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -16,11 +17,43 @@ namespace WpfApp_25._06
         private Dictionary<string, DateTime> activeClients = new Dictionary<string, DateTime>();
         private const int MaxClients = 5;
         private const int InactivityTimeoutMinutes = 10;
+        private const string LogFilePath = "server_log.txt";
         private bool serverRunning;
 
         public MainWindow()
         {
             InitializeComponent();
+            InitializeLogFile();
+        }
+
+        private void InitializeLogFile()
+        {
+            try
+            {
+                using (StreamWriter writer = File.AppendText(LogFilePath))
+                {
+                    writer.WriteLine($"===== Server started at {DateTime.Now} =====");
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Error initializing log file: {ex.Message}");
+            }
+        }
+
+        private void LogMessage(string message)
+        {
+            try
+            {
+                using (StreamWriter writer = File.AppendText(LogFilePath))
+                {
+                    writer.WriteLine($"[{DateTime.Now}] {message}");
+                }
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Error writing to log file: {ex.Message}");
+            }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -34,6 +67,7 @@ namespace WpfApp_25._06
             txtServerStatus.Text = "UDP Server with Client Quantity and Inactivity Timeout is running...";
             (sender as Button).IsEnabled = false;
             FindVisualChild<Button>(this, "StopServerButton").IsEnabled = true;
+            LogMessage("Server started.");
         }
 
         private void StopServer_Click(object sender, RoutedEventArgs e)
@@ -42,6 +76,7 @@ namespace WpfApp_25._06
             txtServerStatus.Text = "UDP Server is not running.";
             (sender as Button).IsEnabled = false;
             FindVisualChild<Button>(this, "StartServerButton").IsEnabled = true;
+            LogMessage("Server stopped.");
         }
 
         private void ManageServer_Click(object sender, RoutedEventArgs e)
@@ -81,7 +116,7 @@ namespace WpfApp_25._06
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error in ReceiveMessages: {ex.Message}");
+                            LogMessage($"Error in ReceiveMessages: {ex.Message}");
                         }
                         finally
                         {
@@ -93,7 +128,7 @@ namespace WpfApp_25._06
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error starting UDP server: {ex.Message}");
+                    LogMessage($"Error starting UDP server: {ex.Message}");
                     StopServer();
                 }
             }
@@ -130,6 +165,8 @@ namespace WpfApp_25._06
                         lstClients.Items.Add(clientEP.Address.ToString());
                     }
                 });
+
+                LogMessage($"Request from {clientEP.Address} processed: {clientRequest}");
             }
         }
 
@@ -145,7 +182,7 @@ namespace WpfApp_25._06
 
         private bool CheckRequestRateLimit(string clientAddress)
         {
-            return true; // Placeholder for request rate limit logic
+            return true; 
         }
 
         private async Task CleanUpInactiveClients()
@@ -173,9 +210,11 @@ namespace WpfApp_25._06
                             lstClients.Items.Remove(clientAddress);
                         }
                     });
+
+                    LogMessage($"Client {clientAddress} disconnected due to inactivity.");
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(1)); // Adjust the delay based on your needs
+                await Task.Delay(TimeSpan.FromMinutes(1)); 
             }
         }
 
