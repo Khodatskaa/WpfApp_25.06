@@ -7,23 +7,12 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <GroupBox Header="Server" Margin="10,10,10,200">
-            <Grid>
-                <Button Name="StartServerButton" Content="Start Server" HorizontalAlignment="Left" VerticalAlignment="Top" Width="100" Margin="10" Click="StartServerButton_Click"/>
-                <Button Name="StopServerButton" Content="Stop Server" HorizontalAlignment="Left" VerticalAlignment="Top" Width="100" Margin="120,10,0,0" Click="StopServerButton_Click" IsEnabled="False"/>
-                <ListBox Name="ServerLogListBox" HorizontalAlignment="Left" Height="180" VerticalAlignment="Top" Width="720" Margin="10,50,0,0"/>
-            </Grid>
-        </GroupBox>
-        <GroupBox Header="Client" Margin="10,210,10,10">
-            <Grid>
-                <TextBox Name="ProductListTextBox" HorizontalAlignment="Left" Height="23" VerticalAlignment="Top" Width="720" Margin="10,10,0,0"
-                         Text="Enter products separated by commas"
-                         Foreground="Gray"
-                         GotFocus="ProductListTextBox_GotFocus"
-                         LostFocus="ProductListTextBox_LostFocus"/>
-                <Button Name="SendRequestButton" Content="Send Request" HorizontalAlignment="Left" VerticalAlignment="Top" Width="100" Margin="10,40,0,0" Click="SendRequestButton_Click"/>
-                <ListBox Name="ClientResponseListBox" HorizontalAlignment="Left" Height="150" VerticalAlignment="Top" Width="720" Margin="10,80,0,0"/>
-            </Grid>
-        </GroupBox>
+        <StackPanel Margin="20">
+            <TextBox x:Name="txtServerIP" PlaceholderText="Server IP Address" Margin="0 0 0 10"/>
+            <TextBox x:Name="txtServerPort" PlaceholderText="Server Port" Margin="0 0 0 10"/>
+            <TextBox x:Name="txtMessageToSend" PlaceholderText="Message to Send" Margin="0 0 0 10"/>
+            <Button Content="Send Message" Click="SendMessage_Click" HorizontalAlignment="Center"/>
+            <TextBlock x:Name="txtReceivedMessage" TextWrapping="Wrap" Margin="0 20 0 0"/>
+        </StackPanel>
     </Grid>
 </Window>
